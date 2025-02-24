@@ -1,0 +1,15 @@
+message_server:
+  listen_addr: 0.0.0.0
+  listen_port: 51235
+
+
+icecast_client:
+  host: '127.0.0.1'
+  port: 8004
+  user: 'source'
+  password: 'hackme'
+  mount: '/stream.ogg'
+
+  format_: 'mp3'
+  protocol: 'http'
+  name: 'my stream name'

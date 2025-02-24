@@ -1,0 +1,6 @@
+Levenshtein
+lxml
+beautifulsoup4
+requests
+python-shout3
+dynaconf
