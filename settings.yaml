@@ -2,6 +2,14 @@ message_server:
   listen_addr: 0.0.0.0
   listen_port: 51235
 
+  in_encodings:
+    - "1251"
+    - "utf-8"
+  
+  out_encodings:
+    - "1251"
+    - "utf-8"
+
 
 icecast_client:
   host: '127.0.0.1'

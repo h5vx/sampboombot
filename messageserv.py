@@ -4,8 +4,21 @@ from queue import Queue
 from threading import Thread
 
 from logs import logger
+from config import settings
 
 song_requests_queue = Queue(maxsize=1024)
+
+
+def try_many(f, options):
+    last_exception = None
+
+    for o in options:
+        try:
+            return f(o)
+        except Exception as e:
+            last_exception = e
+
+    raise last_exception
 
 
 @dataclass
@@ -20,10 +33,12 @@ class MessageHandler(socketserver.BaseRequestHandler):
     def handle(self):
         try:
             nick_len = self.request.recv(1)[0]
-            nick = self.request.recv(nick_len).decode("utf-8")
+            nick = self.request.recv(nick_len)
+            nick = try_many(nick.decode, settings.message_server.in_encodings)
 
             msg_len = self.request.recv(1)[0]
-            msg = self.request.recv(msg_len).decode("1251")
+            msg = self.request.recv(msg_len)
+            msg = try_many(msg.decode, settings.message_server.in_encodings)
         except Exception as e:
             logger.error(f"Malformed message from {self.client_address[0]}")
             logger.error(e)
@@ -33,15 +48,16 @@ class MessageHandler(socketserver.BaseRequestHandler):
 
         if msg == "!skip":
             song_requests_queue.put(SongRequestItem(nick=nick, msg=msg, is_skip_request=True, response=None))
-            self.request.sendall("OK".encode("utf-8")[:128])
+            self.request.sendall(b"OK")
             return
 
         response_q = Queue()
 
         song_requests_queue.put(SongRequestItem(nick=nick, msg=msg, response=response_q))
         response = response_q.get()
+        response = try_many(response.encode, settings.message_server.out_encodings)
 
-        self.request.sendall(response.encode("1251")[:128])
+        self.request.sendall(response[:128])
 
 
 def create_server(addr) -> tuple[socketserver.TCPServer, Thread]:
