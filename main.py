@@ -12,42 +12,8 @@ from searcher import AggregatedSortingSearcher, Track
 
 logger = logging.getLogger(__name__)
 
-TRACKS_DOWNLOAD_PATH = "./tracks"
 
-def handle_song_request_to_file(q: Queue, sr: SongRequestItem) -> str:
-    songfinder = AggregatedSortingSearcher()
-    tracks: list[Track] = songfinder.find_song(sr.msg)
-
-    if len(tracks) == 0:
-        return f"Track not found: {sr.msg}"
-
-    track = tracks[0]
-
-    track_path = os.path.join(TRACKS_DOWNLOAD_PATH, track.get_filename())
-    if os.path.exists(track_path):
-        q.put(track_path)
-
-        if q.qsize() == 1:
-            return f"Queued* next: {track.artist} - {track.title} from {sr.nick}"
-        return f"Queue* #{q.qsize() + 1}: {track.artist} - {track.title} from {sr.nick}"
-
-    r = requests.get(track.download_url, stream=True)
-
-    if r.status_code != 200:
-        logger.error(f"Unable to download track: HTTP {r.status_code}\n  URL: {track.download_url}\n\n{r.content}")
-        return f"Unable to download {sr.msg}. Error {r.status_code}"
-
-    with open(track_path, "wb") as f:
-        shutil.copyfileobj(r.raw, f)
-    
-    q.put(track)
-
-    if q.qsize() == 1:
-        return f"Queued next: {track.artist} - {track.title} from {sr.nick}"
-    return f"Queue #{q.qsize() + 1}: {track.artist} - {track.title} from {sr.nick}"
-
-
-def handle_song_request_to_ice(q: Queue, sr: SongRequestItem) -> str:
+def handle_song_request(q: Queue, sr: SongRequestItem) -> str:
     songfinder = AggregatedSortingSearcher()
     tracks: list[Track] = songfinder.find_song(sr.msg)
 
@@ -97,7 +63,7 @@ def main():
                 ice.skip_current()
                 continue
 
-            msg = handle_song_request_to_ice(ice.track_queue, song_request)
+            msg = handle_song_request(ice.track_queue, song_request)
             song_request.response.put(msg)
     except KeyboardInterrupt:
         logger.info("Shutdown!")
