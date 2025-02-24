@@ -129,7 +129,7 @@ class IceFeeder(threading.Thread):
 
             while self.track_queue.empty():
                 if not self._feed_next_block(self._elevator_music):
-                    logger.info("Reset elevator buffer")
+                    logger.debug("Reset elevator buffer")
                     self._elevator_music.seek(0)
 
             logger.debug(f"Get track from queue")
