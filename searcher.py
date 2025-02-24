@@ -1,3 +1,4 @@
+import logging
 import os
 import typing as t
 import urllib
@@ -8,8 +9,7 @@ import requests
 from bs4 import BeautifulSoup
 from Levenshtein import distance
 
-from logs import logger
-
+logger = logging.getLogger(__name__)
 
 @dataclass()
 class Track:

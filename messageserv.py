@@ -1,10 +1,12 @@
+import logging
 import socketserver
 from dataclasses import dataclass
 from queue import Queue
 from threading import Thread
 
-from logs import logger
 from config import settings
+
+logger = logging.getLogger(__name__)
 
 song_requests_queue = Queue(maxsize=1024)
 

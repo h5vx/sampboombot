@@ -21,3 +21,20 @@ icecast_client:
   format_: 'mp3'
   protocol: 'http'
   name: 'my stream name'
+
+
+logging:
+  version: 1
+
+  root:
+    level: INFO
+    handlers: [console]
+  
+  handlers:
+    console:
+      class: logging.StreamHandler
+      formatter: default
+
+  formatters:
+    default:
+      format: '%(asctime)s %(levelname)-7s %(module)10s - %(message)s'

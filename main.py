@@ -1,3 +1,4 @@
+import logging
 import os
 import shutil
 from queue import Queue
@@ -6,9 +7,10 @@ import requests
 
 from config import settings
 from icefeeder import IceConfig, IceFeeder
-from logs import logger
 from messageserv import SongRequestItem, create_server, song_requests_queue
 from searcher import AggregatedSortingSearcher, Track
+
+logger = logging.getLogger(__name__)
 
 TRACKS_DOWNLOAD_PATH = "./tracks"
 
