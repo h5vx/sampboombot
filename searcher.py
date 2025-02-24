@@ -27,7 +27,7 @@ class Track:
 
 
 def sorted_tracks(tracks: t.List[Track], song_name: str) -> t.List:
-    sorter = lambda track: distance(f"{track.artist} {track.title}", song_name)
+    sorter = lambda track: distance(f"{track.artist} {track.title}", song_name, processor=str.lower)
     return list(sorted(tracks, key=sorter))
 
 
