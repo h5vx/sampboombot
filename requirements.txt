@@ -2,5 +2,5 @@ Levenshtein
 lxml
 beautifulsoup4
 requests
-python-shout3
+python-shout
 dynaconf
