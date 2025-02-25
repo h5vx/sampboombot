@@ -52,9 +52,7 @@ class HitmoSearcher(BaseSearcher):
             try:
                 track_list.append(cls.parse_one_el(track))
             except Exception as e:
-                logger.error(
-                    f"{cls.__name__}: For song '{song_name}': failed to parse {i} element: {e}"
-                )
+                logger.exception(f"{cls.__name__}: For song '{song_name}': failed to parse {i} element")
 
         return track_list
 
@@ -65,6 +63,35 @@ class HitmoSearcher(BaseSearcher):
             artist=el.find("div", {"class": "track__desc"}).text,
             length=el.find("div", {"class": "track__fulltime"}).text,
             download_url=el.find("a", {"class": "track__download-btn"})["href"],
+        )
+
+
+class HitmoLolSearcher(BaseSearcher):
+    BASE_URL = "https://hitmo.lol"
+
+    @classmethod
+    def find_song(cls, song_name: str) -> t.List[Track]:
+        url = f"{cls.BASE_URL}/pesnya/{song_name}"
+        r = requests.get(url)
+
+        bs = BeautifulSoup(r.text, features="html.parser")
+        tracks = bs.find_all("div", {"class": "track-item"})
+
+        track_list = []
+        for i, track in enumerate(tracks):
+            try:
+                track_list.append(cls.parse_one_el(track))
+            except Exception as e:
+                logger.exception(f"{cls.__name__}: For song '{song_name}': failed to parse {i} element", )
+        return track_list
+
+    @classmethod
+    def parse_one_el(cls, el):
+        return Track(
+            title=el.find("a", {"class": "muzmo-track__title"}).text.strip(),
+            artist=el.find("span", {"class": "muzmo-track__artist"}).text,
+            length=el.find("span", {"class": "short-track__time"}).text,
+            download_url=cls.BASE_URL + el["data-file"],
         )
 
 
@@ -83,9 +110,7 @@ class LigAudioSearcher(BaseSearcher):
             try:
                 track_list.append(cls.parse_one_el(track))
             except Exception as e:
-                logger.error(
-                    f"{cls.__name__}: For song '{song_name}': failed to parse {i} element: {e}"
-                )
+                logger.exception(f"{cls.__name__}: For song '{song_name}': failed to parse {i} element")
 
         return track_list
 
@@ -100,7 +125,7 @@ class LigAudioSearcher(BaseSearcher):
 
 
 class AggregatedSortingSearcher:
-    searchers = (LigAudioSearcher, HitmoSearcher)
+    searchers = (HitmoLolSearcher, LigAudioSearcher, HitmoSearcher)
 
     def find_song(self, song_name: str) -> t.List[Track]:
         results = []
@@ -118,7 +143,7 @@ if __name__ == "__main__":
     args = p.parse_args()
 
     results = []
-    searchers = (LigAudioSearcher, HitmoSearcher)
+    searchers = (HitmoLolSearcher, LigAudioSearcher, HitmoSearcher)
 
     for engine in searchers:
         results += engine.find_song(args.songname)
