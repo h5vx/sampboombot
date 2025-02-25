@@ -29,7 +29,7 @@ class IceConfig:
     genre: str = ""
     url: str = ""
     public: int = 1
-    chunk_size = 4096
+    chunk_size: int = 4096
     audio_info: dict = field(
         default_factory=lambda: {
             shout.SHOUT_AI_BITRATE: "256",
