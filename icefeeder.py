@@ -29,6 +29,7 @@ class IceConfig:
     genre: str = ""
     url: str = ""
     public: int = 1
+    chunk_size = 4096
     audio_info: dict = field(
         default_factory=lambda: {
             shout.SHOUT_AI_BITRATE: "256",
@@ -78,9 +79,7 @@ class IceFeeder(threading.Thread):
         super().__init__()
 
     def connect_to_icecast(self):
-        logger.info(
-            f"Connecting to icecast server {self.s.host}:{self.s.port}"
-        )
+        logger.info(f"Connecting to icecast server {self.s.host}:{self.s.port}")
 
         success = False
 
@@ -113,9 +112,9 @@ class IceFeeder(threading.Thread):
         self._skip_flag = True
 
     def _feed_next_block(self, fp) -> bool:
-        logger.debug(f"Feeding blk {fp.tell() // 4096}")
-        buf = fp.read(4096)
-        if len(buf) == 0:
+        buf = fp.read(self.config.chunk_size)
+        if len(buf) < self.config.chunk_size:
+            self.s.send(buf)
             return False
         self.s.send(buf)
         self.s.sync()
