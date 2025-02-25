@@ -40,7 +40,7 @@ class MessageHandler(socketserver.BaseRequestHandler):
 
             msg_len = self.request.recv(1)[0]
             msg = self.request.recv(msg_len)
-            msg = try_many(msg.decode, settings.message_server.in_encodings)
+            msg = try_many(msg.decode, settings.message_server.in_encodings).strip()
         except Exception as e:
             logger.error(f"Malformed message from {self.client_address[0]}")
             logger.error(e)
