@@ -48,6 +48,7 @@ function sampev.onServerMessage(color, text)
 
     if blacklist_nicks[nick] ~= nil then 
         print(string.format("Command from %s ignored (blacklist)", nick))
+        return
     end
 
     table.insert(song_requests, {nick, msg})
