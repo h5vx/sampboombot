@@ -133,9 +133,16 @@ class IceFeeder(threading.Thread):
 
             logger.debug(f"Get track from queue")
             t = self.track_queue.get()
-            self.s.set_metadata({
-                "song": f"{t.artist} - {t.title} ({t.length}) @{t.requester} | {self.track_queue.qsize()} tracks in queue"
-            })
+
+            songinfo = (
+                f"{t.artist} - {t.title} ({t.length}) @{t.requester}"
+                f" | {self.track_queue.qsize()} tracks in queue"
+            )
+
+            try:
+                self.s.set_metadata({"song": songinfo})
+            except Exception as e:
+                logger.exception(str(e))
 
             logger.info(f"Playing: {t.artist} - {t.title} ({t.length})")
 
