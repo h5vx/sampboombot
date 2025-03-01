@@ -11,6 +11,10 @@ message_server:
     - "utf-8"
 
 
+searcher:
+  request_timeout: 1
+
+
 icecast_client:
   host: '127.0.0.1'
   port: 8004

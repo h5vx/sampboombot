@@ -2,11 +2,15 @@ import logging
 import os
 import urllib
 import urllib.parse
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
+from functools import reduce
 
 import requests
 from bs4 import BeautifulSoup
 from Levenshtein import distance
+
+from config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +35,7 @@ def sorted_tracks(tracks: list[Track], song_name: str) -> list[Track]:
 
 
 class BaseSearcher:
-    REQUEST_TIMEOUT = 2
+    pass
 
 
 class HitmoSearcher(BaseSearcher):
@@ -41,7 +45,11 @@ class HitmoSearcher(BaseSearcher):
     def find_song(cls, song_name: str) -> list[Track]:
         song_name_a = "+".join(song_name.split())
         url = f"{cls.BASE_URL}/search?q={song_name_a}"
-        r = requests.get(url, timeout=cls.REQUEST_TIMEOUT)
+
+        try:
+            r = requests.get(url, timeout=settings.searcher.request_timeout)
+        except requests.exceptions.Timeout:
+            return []
 
         bs = BeautifulSoup(r.text, features="html.parser")
         tracks = bs.find_all("li", {"class": "tracks__item"})
@@ -71,7 +79,10 @@ class HitmoLolSearcher(BaseSearcher):
     @classmethod
     def find_song(cls, song_name: str) -> list[Track]:
         url = f"{cls.BASE_URL}/pesnya/{song_name}"
-        r = requests.get(url, timeout=cls.REQUEST_TIMEOUT)
+        try:
+            r = requests.get(url, timeout=settings.searcher.request_timeout)
+        except requests.exceptions.Timeout:
+            return []
 
         bs = BeautifulSoup(r.text, features="html.parser")
         tracks = bs.find_all("div", {"class": "track-item"})
@@ -99,7 +110,10 @@ class LigAudioSearcher(BaseSearcher):
 
     @classmethod
     def find_song(cls, song_name: str) -> list[Track]:
-        r = requests.get(f"{cls.BASE_URL}/{song_name}", timeout=cls.REQUEST_TIMEOUT)
+        try:
+            r = requests.get(f"{cls.BASE_URL}/{song_name}", timeout=settings.searcher.request_timeout)
+        except requests.exceptions.Timeout:
+            return []
 
         bs = BeautifulSoup(r.text, features="html.parser")
         tracks = bs.find_all("div", {"class": "item"})
@@ -127,27 +141,55 @@ class AggregatedSortingSearcher:
     searchers = (HitmoLolSearcher, LigAudioSearcher, HitmoSearcher)
 
     def find_song(self, song_name: str) -> list[Track]:
-        results = []
-        for engine in self.searchers:
-            results += engine.find_song(song_name)
+        futures = []
+        with ThreadPoolExecutor(max_workers=len(self.searchers)) as pool:
+            for engine in self.searchers:
+                futures.append(pool.submit(engine.find_song, song_name))
+
+        results = reduce(list.__add__, (future.result() for future in futures))
         return sorted_tracks(results, song_name)
 
 
 
 if __name__ == "__main__":
     import argparse
+    import timeit
+    from functools import partial
 
     p = argparse.ArgumentParser()
     p.add_argument("songname")
     args = p.parse_args()
 
-    results = []
-    searchers = (HitmoLolSearcher, LigAudioSearcher, HitmoSearcher)
+    def test_threaded(timeout, out: list):
+        settings.searcher.request_timeout = timeout
+        searcher = AggregatedSortingSearcher()
+        results = searcher.find_song(args.songname)
+        out.extend(results)
+        return results
+    
+    def test_unthreaded(timeout, out: list):
+        settings.searcher.request_timeout = timeout
+        results = []
+        searchers = (HitmoLolSearcher, LigAudioSearcher, HitmoSearcher)
+        for engine in searchers:
+            results += engine.find_song(args.songname)
+        results = sorted_tracks(results, args.songname)
+        out.extend(results)
+        return results
 
-    for engine in searchers:
-        results += engine.find_song(args.songname)
+    outputs = [list() for _ in range(4)]
+    tests = {
+        "Threaded (timeout=2)": timeit.timeit(partial(test_threaded, 2, outputs[0]), number=1),
+        "Threaded (timeout=1)": timeit.timeit(partial(test_threaded, 1, outputs[1]), number=1),
+        "Unthreaded (timeout=2)": timeit.timeit(partial(test_unthreaded, 2, outputs[2]), number=1),
+        "Unthreaded (timeout=1)": timeit.timeit(partial(test_unthreaded, 1, outputs[3]), number=1),
+    }
 
-    result = sorted_tracks(results, args.songname)
+    for k, v in sorted(tests.items(), key=lambda x: x[1]):
+        print(f"{v:.2f} - {k}")
 
-    for i, t in enumerate(result):
-        print(f"{i}: {t.artist} - {t.title}\t\t{t.download_url}")
+    for i, output in enumerate(outputs):
+        print(f"Output {i} - {len(output)} items")
+
+    # for i, t in enumerate(result):
+        # print(f"{i}: {t.artist} - {t.title}\t\t{t.download_url}")
