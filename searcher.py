@@ -1,6 +1,5 @@
 import logging
 import os
-import typing as t
 import urllib
 import urllib.parse
 from dataclasses import dataclass
@@ -26,23 +25,23 @@ class Track:
         return os.path.basename(urlpath)
 
 
-def sorted_tracks(tracks: t.List[Track], song_name: str) -> t.List:
+def sorted_tracks(tracks: list[Track], song_name: str) -> list[Track]:
     sorter = lambda track: distance(f"{track.artist} {track.title}", song_name, processor=str.lower)
     return list(sorted(tracks, key=sorter))
 
 
 class BaseSearcher:
-    pass
+    REQUEST_TIMEOUT = 2
 
 
 class HitmoSearcher(BaseSearcher):
     BASE_URL = "https://rus.hitmotop.com"
 
     @classmethod
-    def find_song(cls, song_name: str) -> t.List[Track]:
+    def find_song(cls, song_name: str) -> list[Track]:
         song_name_a = "+".join(song_name.split())
         url = f"{cls.BASE_URL}/search?q={song_name_a}"
-        r = requests.get(url)
+        r = requests.get(url, timeout=cls.REQUEST_TIMEOUT)
 
         bs = BeautifulSoup(r.text, features="html.parser")
         tracks = bs.find_all("li", {"class": "tracks__item"})
@@ -70,9 +69,9 @@ class HitmoLolSearcher(BaseSearcher):
     BASE_URL = "https://hitmo.lol"
 
     @classmethod
-    def find_song(cls, song_name: str) -> t.List[Track]:
+    def find_song(cls, song_name: str) -> list[Track]:
         url = f"{cls.BASE_URL}/pesnya/{song_name}"
-        r = requests.get(url)
+        r = requests.get(url, timeout=cls.REQUEST_TIMEOUT)
 
         bs = BeautifulSoup(r.text, features="html.parser")
         tracks = bs.find_all("div", {"class": "track-item"})
@@ -99,8 +98,8 @@ class LigAudioSearcher(BaseSearcher):
     BASE_URL = "https://web.ligaudio.ru/mp3"
 
     @classmethod
-    def find_song(cls, song_name: str) -> t.List[Track]:
-        r = requests.get(f"{cls.BASE_URL}/{song_name}")
+    def find_song(cls, song_name: str) -> list[Track]:
+        r = requests.get(f"{cls.BASE_URL}/{song_name}", timeout=cls.REQUEST_TIMEOUT)
 
         bs = BeautifulSoup(r.text, features="html.parser")
         tracks = bs.find_all("div", {"class": "item"})
@@ -127,7 +126,7 @@ class LigAudioSearcher(BaseSearcher):
 class AggregatedSortingSearcher:
     searchers = (HitmoLolSearcher, LigAudioSearcher, HitmoSearcher)
 
-    def find_song(self, song_name: str) -> t.List[Track]:
+    def find_song(self, song_name: str) -> list[Track]:
         results = []
         for engine in self.searchers:
             results += engine.find_song(song_name)
