@@ -1,4 +1,5 @@
 import logging
+import socket
 import socketserver
 from dataclasses import dataclass
 from queue import Queue
@@ -64,6 +65,7 @@ class MessageHandler(socketserver.BaseRequestHandler):
 
 def create_server(addr) -> tuple[socketserver.TCPServer, Thread]:
     server = socketserver.ThreadingTCPServer(addr, MessageHandler)
+    server.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
     def server_thread():
         server.serve_forever()
