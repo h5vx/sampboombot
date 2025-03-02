@@ -1,7 +1,7 @@
 import logging
-import os
-import shutil
 from queue import Queue
+import sys
+import signal
 
 import requests
 
@@ -53,6 +53,19 @@ def main():
     msgsrv_thread.start()
     logger.info(f"Message server running on {msgsrv_addr[0]}:{msgsrv_addr[1]}")
 
+    def sigterm_handler(sig, frame):
+        logger.info("Shutdown!")
+        msgsrv.shutdown()
+        logger.info("Waiting message server to stop...")
+        msgsrv_thread.join()
+        ice.shutdown()
+        logger.info("Waiting icefeeder to stop...")
+        ice.join()
+        logger.info("Shutdown complete")
+        sys.exit(0)
+
+    signal.signal(signal.SIGTERM, sigterm_handler)
+
     logger.info("Everything is working. Waiting messages...")
 
     try:
@@ -64,6 +77,7 @@ def main():
                 continue
 
             msg = handle_song_request(ice.track_queue, song_request)
+            ice.update_meta()
             song_request.response.put(msg)
     except KeyboardInterrupt:
         logger.info("Shutdown!")

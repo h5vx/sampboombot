@@ -71,6 +71,8 @@ class IceFeeder(threading.Thread):
         self.track_queue: Queue[Track] = Queue()
         self.working = False
 
+        self.current_track = None
+
         self._skip_flag = False
 
         with open(elevator_music_path, "rb") as f:
@@ -110,6 +112,18 @@ class IceFeeder(threading.Thread):
 
     def skip_current(self):
         self._skip_flag = True
+    
+    def update_meta(self):
+        t = self.current_track
+        songinfo = (
+            f"{t.artist} - {t.title} ({t.length}) @{t.requester}"
+            f" | {self.track_queue.qsize()} tracks in queue"
+        )
+
+        try:
+            self.s.set_metadata({"song": songinfo})
+        except Exception as e:
+            logger.exception(str(e))
 
     def _feed_next_block(self, fp) -> bool:
         buf = fp.read(self.config.chunk_size)
@@ -136,17 +150,10 @@ class IceFeeder(threading.Thread):
                 return
 
             logger.debug(f"Get track from queue")
-            t = self.track_queue.get()
 
-            songinfo = (
-                f"{t.artist} - {t.title} ({t.length}) @{t.requester}"
-                f" | {self.track_queue.qsize()} tracks in queue"
-            )
-
-            try:
-                self.s.set_metadata({"song": songinfo})
-            except Exception as e:
-                logger.exception(str(e))
+            self.current_track = self.track_queue.get()
+            t = self.current_track
+            self.update_meta()
 
             logger.info(f"Playing: {t.artist} - {t.title} ({t.length})")
 
