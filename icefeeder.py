@@ -115,6 +115,10 @@ class IceFeeder(threading.Thread):
     
     def update_meta(self):
         t = self.current_track
+
+        if t is None:
+            return
+
         songinfo = (
             f"{t.artist} - {t.title} ({t.length}) @{t.requester}"
             f" | {self.track_queue.qsize()} tracks in queue"
