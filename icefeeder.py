@@ -144,6 +144,9 @@ class IceFeeder(threading.Thread):
         while self.working:
             logger.debug(f"Playing elevator music at pos {self._elevator_music.tell()}")
 
+            if self.track_queue.empty():
+                self.s.set_metadata({"song": "No songs in queue. Write !!play SONG NAME"})
+
             while self.working and self.track_queue.empty():
                 if not self._feed_next_block(self._elevator_music):
                     logger.debug("Reset elevator buffer")
@@ -169,6 +172,5 @@ class IceFeeder(threading.Thread):
             logger.debug(f"DONE Playing {t.artist} - {t.title} ({t.length})")
 
             self._skip_flag = False
-            self.s.set_metadata({"song": "No songs in queue. Write !!play SONG NAME"})
 
         self.s.close()
