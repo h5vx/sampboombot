@@ -131,6 +131,10 @@ class IceFeeder(threading.Thread):
 
     def _feed_next_block(self, fp) -> bool:
         buf = fp.read(self.config.chunk_size)
+
+        if len(buf) == 0:
+            return False
+
         if len(buf) < self.config.chunk_size:
             self.s.send(buf)
             return False
