@@ -168,10 +168,8 @@ class IceFeeder(threading.Thread):
 
             logger.info(f"Playing: {t.artist} - {t.title} ({t.length})")
 
-            r = requests.get(t.download_url, stream=True)
-            while not self._skip_flag and self._feed_next_block(r.raw):
+            while not self._skip_flag and self._feed_next_block(t.buf):
                 pass
-            r.close()
 
             logger.debug(f"DONE Playing {t.artist} - {t.title} ({t.length})")
 

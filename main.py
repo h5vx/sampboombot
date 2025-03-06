@@ -8,26 +8,16 @@ import requests
 from config import settings
 from icefeeder import IceConfig, IceFeeder
 from messageserv import SongRequestItem, create_server, song_requests_queue
-from searcher import AggregatedSortingSearcher, Track
+from searcher import get_track
 
 logger = logging.getLogger(__name__)
 
 
 def handle_song_request(q: Queue, sr: SongRequestItem) -> str:
-    songfinder = AggregatedSortingSearcher()
-    tracks: list[Track] = songfinder.find_song(sr.msg)
+    track = get_track(sr.msg)
 
-    if len(tracks) == 0:
+    if not track:
         return f"Track not found: {sr.msg}"
-    
-    track = tracks[0]
-
-    r = requests.get(track.download_url, stream=True)
-    if r.status_code != 200:
-        r.close()
-        logger.error(f"Unable to download track: HTTP {r.status_code}\n  URL: {track.download_url}\n\n{r.content}")
-        return f"Unable to download {sr.msg}. Error {r.status_code}"
-    r.close()
 
     track.requester = sr.nick
     q.put(track)
