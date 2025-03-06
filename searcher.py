@@ -165,7 +165,7 @@ class AggregatedSortingSearcher:
         return sorted_tracks(results, song_name)
 
 
-def get_track_by_songname(songname) -> Track | None:
+def get_track_by_songname(songname) -> t.Optional[None]:
     searcher = AggregatedSortingSearcher()
     tracks = searcher.find_song(songname)
 
