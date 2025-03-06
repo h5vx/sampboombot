@@ -3,6 +3,7 @@ import logging
 import os
 import urllib
 import urllib.parse
+import typing as t
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from functools import reduce
@@ -189,7 +190,7 @@ def get_track_by_songname(songname) -> Track | None:
     return track
 
 
-def get_track_by_url(url) -> Track | None:
+def get_track_by_url(url) -> t.Optional[Track]:
     opts = {
         "outtmpl": "yt",
         "logtostderr": True,
@@ -225,7 +226,7 @@ def get_track_by_url(url) -> Track | None:
     )
 
 
-def get_track(songname_or_url) -> Track | None:
+def get_track(songname_or_url) -> t.Optional[Track]:
     if songname_or_url.startswith("https://"):
         try:
             return get_track_by_url(songname_or_url)
